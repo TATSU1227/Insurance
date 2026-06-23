@@ -59,8 +59,8 @@
 
   .title {
     position: absolute; top: 40px; left: 0; right: 0;
-    text-align: center; font-size: 2.7rem; font-weight: 700;
-    color: #111; letter-spacing: 0.10em;
+    text-align: center; font-size: 2.5rem; font-weight: 700;
+    color: #111; letter-spacing: 0.07em;
   }
   .diagram-pos {
     position: absolute; top: 150px; left: 50%;
@@ -126,6 +126,24 @@
   .fade-title.title-visible { opacity: 1; }
   .fade-title.no-anim { transition: none; opacity: 1; }
 
+  /* ヒントテキスト点滅 */
+  #hintText {
+    position: absolute;
+    top: 490px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #555;
+    letter-spacing: 0.03em;
+    pointer-events: none;
+    animation: blink 1.4s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.2; }
+  }
+
   .modal-close { float:right; cursor:pointer; font-size:16px; color:#999; margin-left:8px; }
   .hl { color: #c0392b; font-weight: 700; }
 </style>
@@ -140,7 +158,7 @@
   <circle id="coinCircle" cx="150" cy="150" r="128" fill="#E8C440"/>
   <circle cx="150" cy="150" r="128" fill="none" stroke="#111" stroke-width="4" pointer-events="none"/>
   <text x="150" y="155" text-anchor="middle" dominant-baseline="central"
-    font-size="180" font-weight="300"
+    font-size="180" font-weight="1"
     font-family="'M PLUS Rounded 1c', sans-serif"
     fill="#111" pointer-events="none">¥</text>
 </svg>
@@ -149,6 +167,7 @@
 <div class="scene active" id="scene0">
   <div class="stage">
     <div class="title" style="top:44px">保険料</div>
+    <div id="hintText">↑ コインをタップして<br>保険料の構成要素を覗いてみよう！</div>
   </div>
 </div>
 
