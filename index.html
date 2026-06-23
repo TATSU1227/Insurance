@@ -415,8 +415,9 @@ function showScene(toId, fadeLabels) {
  
   } else if (fromId === 'scene1' && toId === 'scene2') {
     // ===== シーン1→2 =====
-    // ann-junをフェードアウト
+    // 純・ann-junをフェードアウト
     document.querySelectorAll('#scene1 .ann-jun').forEach(g => g.classList.remove('visible'));
+    current.querySelectorAll('.fade-part').forEach(el => el.classList.remove('part-visible'));
     // フェードアウト完了後にシーン切り替え
     setTimeout(() => {
       current.classList.remove('active');
@@ -433,22 +434,27 @@ function showScene(toId, fadeLabels) {
  
   } else if (fromId === 'scene2' && toId === 'scene1') {
     // ===== シーン2→1 =====
-    current.classList.remove('active');
-    next.classList.add('active');
-    // 黒丸・付加・事業費率は即表示
-    next.querySelectorAll('.fade-whole').forEach(el => { el.classList.remove('no-anim'); el.classList.add('whole-visible'); });
-    next.querySelectorAll('.fade-title').forEach(el => { el.classList.remove('no-anim'); el.classList.add('title-visible'); });
-    next.querySelectorAll('#scene1 .ann-jigyou').forEach(g => g.classList.add('visible'));
-    // 純だけフェードイン
-    next.querySelectorAll('.fade-part').forEach(el => el.classList.remove('part-visible'));
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      next.querySelectorAll('.fade-part').forEach(el => el.classList.add('part-visible'));
-    }));
-    // 純ラベルだけフェードイン
-    document.querySelectorAll('#scene1 .ann-jun').forEach(g => {
-      g.classList.remove('visible');
-      setTimeout(() => g.classList.add('visible'), 80);
-    });
+    // 死・生存をフェードアウト
+    current.querySelectorAll('.fade-part').forEach(el => el.classList.remove('part-visible'));
+    // フェードアウト完了後にシーン切り替え
+    setTimeout(() => {
+      current.classList.remove('active');
+      next.classList.add('active');
+      // 黒丸・付加・事業費率は即表示
+      next.querySelectorAll('.fade-whole').forEach(el => { el.classList.remove('no-anim'); el.classList.add('whole-visible'); });
+      next.querySelectorAll('.fade-title').forEach(el => { el.classList.remove('no-anim'); el.classList.add('title-visible'); });
+      next.querySelectorAll('#scene1 .ann-jigyou').forEach(g => g.classList.add('visible'));
+      // 純だけフェードイン
+      next.querySelectorAll('.fade-part').forEach(el => el.classList.remove('part-visible'));
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        next.querySelectorAll('.fade-part').forEach(el => el.classList.add('part-visible'));
+      }));
+      // 純ラベルだけフェードイン
+      document.querySelectorAll('#scene1 .ann-jun').forEach(g => {
+        g.classList.remove('visible');
+        setTimeout(() => g.classList.add('visible'), 80);
+      });
+    }, FADE_DUR);
   }
 }
  
