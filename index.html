@@ -18,10 +18,9 @@
   }
 
   /* シーン管理：重ねてopacityで切り替え */
-  #sceneWrap { position: relative; width: 100%; min-height: 100vh; }
+  #sceneWrap { position: relative; width: 100%; height: 100vh; overflow: hidden; }
   .scene {
-    position: absolute; top: 0; left: 0; width: 100%;
-    min-height: 100vh;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     pointer-events: none;
     visibility: hidden;
   }
@@ -132,9 +131,10 @@
 </style>
 </head>
 <body>
+<div id="sceneWrap">
 <!-- コイン：常時表示レイヤー（最前面） -->
 <svg id="coinBtn" width="300" height="300" viewBox="0 0 300 300"
-  style="position:fixed; top:150px; left:50%; transform:translateX(-50%);
+  style="position:absolute; top:150px; left:50%; transform:translateX(-50%);
          overflow:visible; z-index:10; cursor:pointer;
          opacity:1; transition:opacity 0.2s ease; pointer-events:auto;">
   <circle id="coinCircle" cx="150" cy="150" r="128" fill="#E8C440"/>
@@ -144,8 +144,6 @@
     font-family="'M PLUS Rounded 1c', sans-serif"
     fill="#111" pointer-events="none">¥</text>
 </svg>
-
-<div id="sceneWrap">
 
 <!-- ===== SCENE 0 ===== -->
 <div class="scene active" id="scene0">
