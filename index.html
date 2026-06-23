@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>保険料の構成</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=M+PLUS+Rounded+1c:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { -webkit-tap-highlight-color: transparent; }
+
+  /* ダークモードでも背景は常に白 */
+  html, body { background: #f5f5f5 !important; color-scheme: light; }
+  body {
+    font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', sans-serif;
+  }
+
+  /* シーン管理：position:absoluteで重ねてフェード */
+  #sceneWrap { position: relative; width: 100%; min-height: 100vh; }
+  .scene {
+    position: absolute; top: 0; left: 0; width: 100%;
+    min-height: 100vh;
+    display: none;
+  }
+  .scene.active { display: block; }
+
+  /* 丸い図形（circle）だけフェード */
+  .fade-circle {
+    opacity: 0;
+    transition: opacity 0.05s ease;
+  }
+  .fade-circle.circ-visible { opacity: 1; }
+
+  .stage { position: relative; width: 100%; min-height: 100vh; }
+
+  .title {
+    position: absolute; top: 40px; left: 0; right: 0;
+    text-align: center; font-size: 2rem; font-weight: 900;
+    color: #111; letter-spacing: 0.05em;
+  }
+  .diagram-pos {
+    position: absolute; top: 150px; left: 50%;
+    transform: translateX(-50%); overflow: visible;
+  }
+
+  /* 戻るボタン */
+  .back-btn {
+    position: absolute; top: 42px; left: 16px;
+    padding: 4px 14px;
+    background: #fff; border: 1.5px solid #ccc; border-radius: 20px;
+    font-size: 0.85rem; font-weight: 700; color: #333;
+    cursor: pointer; user-select: none;
+    font-family: 'Zen Maru Gothic', sans-serif;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    transition: background 0.15s; z-index: 10;
+  }
+  .back-btn:active { background: #eee; }
+
+  /* リーダーラベル：シーン0→1時のみフェードイン */
+  .ann-group {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .ann-group.visible { opacity: 1; }
+
+  /* タップフラッシュ */
+  @keyframes tapFlash { 0%{opacity:1} 30%{opacity:0.35} 100%{opacity:1} }
+  .tapping { animation: tapFlash 0.25s ease forwards; }
+
+  /* モーダルオーバーレイ */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.22); z-index: 99;
+    visibility: hidden; opacity: 0;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+  .modal-overlay.visible { visibility: visible; opacity: 1; }
+
+  /* モーダル本体（ちょっと下から浮き上がる） */
+  .modal-box {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -46%);
+    background: #fff; border: 1.5px solid #222; border-radius: 16px;
+    padding: 20px 24px; font-size: 13px; line-height: 1.8;
+    max-width: 300px; width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,.15);
+    z-index: 100; color: #222;
+    font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', sans-serif;
+    visibility: hidden; opacity: 0;
+    transition: opacity 0.28s ease 0.04s, visibility 0.28s ease 0.04s, transform 0.28s ease 0.04s;
+  }
+  .modal-box.visible {
+    visibility: visible; opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  .modal-close { float:right; cursor:pointer; font-size:16px; color:#999; margin-left:8px; }
+  .hl { color: #c0392b; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="sceneWrap">
+
+<!-- ===== SCENE 0 ===== -->
+<div class="scene active" id="scene0">
+  <div class="stage">
+    <div class="title" style="top:48px">保険料</div>
+    <svg class="diagram diagram-pos" id="coinBtn" width="300" height="300" viewBox="0 0 300 300" style="cursor:pointer">
+      <!-- 黄色のみタップ対象（枠・¥はpointer-events:none） -->
+      <circle id="coinCircle" class="fade-circle" cx="150" cy="150" r="128" fill="#E8C440"/>
+      <circle cx="150" cy="150" r="128" fill="none" stroke="#111" stroke-width="4" pointer-events="none"/>
+      <text x="150" y="155" text-anchor="middle" dominant-baseline="central"
+        font-size="155" font-weight="300"
+        font-family="'M PLUS Rounded 1c', sans-serif"
+        fill="#111" pointer-events="none">¥</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ===== SCENE 1 ===== -->
+<div class="scene" id="scene1">
+  <div class="stage">
+    <button class="back-btn" id="backBtn1">戻る</button>
+    <div class="title" style="top:44px">保険料</div>
+    <svg class="diagram diagram-pos" width="300" height="300" viewBox="0 0 300 300">
+      <circle id="scene1Circle" class="fade-circle" cx="150" cy="150" r="128" fill="#141414"/>
+
+      <!-- 純クッション -->
+      <g id="junBtn" style="cursor:pointer">
+        <path id="junPath" d="
+          M 62.3,142 L 237.7,142
+          Q 259.7,142 257.7,124.5
+          A 110,110 0 0,0 42.3,124.5
+          Q 40.3,142 62.3,142 Z" fill="#fff"/>
+        <text x="150" y="95" text-anchor="middle" dominant-baseline="central"
+          font-size="44" font-weight="700"
+          font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
+          fill="#111" pointer-events="none">純</text>
+      </g>
+
+      <!-- 付加クッション -->
+      <g id="fukaBtn1" style="cursor:pointer">
+        <path id="fukaPath1" d="
+          M 62.3,158 L 237.7,158
+          Q 259.7,158 257.7,175.5
+          A 110,110 0 0,1 42.3,175.5
+          Q 40.3,158 62.3,158 Z" fill="#fff"/>
+        <text x="150" y="198" text-anchor="middle" dominant-baseline="central"
+          font-size="44" font-weight="700"
+          font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
+          fill="#111" pointer-events="none">付加</text>
+      </g>
+
+      <!--
+        リーダー線：pointer-events="none" で完全にクリック不可
+        線を少し短く：純ラベル線 y1=84→y2=28（上端を短縮）
+                      付加ラベル線 y1=222→y2=292（下端を短縮）
+      -->
+      <g class="ann-group" id="annLines1" pointer-events="none">
+        <line x1="95" y1="84" x2="55" y2="28" stroke="#333" stroke-width="1.3"/>
+        <line x1="95" y1="222" x2="52" y2="294" stroke="#333" stroke-width="1.3"/>
+      </g>
+
+      <!--
+        ラベルテキスト群（フェードイン対象）
+        線はクリック不可、テキストのみクリック可能にするため
+        非クリック部（「、」「で決まる」）と クリック部（キーワード）を分離
+      -->
+      <g class="ann-group" id="annGroup1" pointer-events="none">
+        <!-- 純ラベル非クリック部：「、」は予定死亡率の右隣、「利率で決まる」2行目 -->
+        <text font-size="16" font-weight="500" fill="#111"
+          font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif">
+          <tspan x="88" y="-5">、</tspan>
+          <tspan x="40" y="17">で決まる</tspan>
+        </text>
+        <!-- 付加ラベル非クリック部：「で決まる」は事業費率の下 -->
+        <text font-size="16" font-weight="500" fill="#444"
+          font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif">
+          <tspan x="16" y="336">で決まる</tspan>
+        </text>
+      </g>
+
+      <!-- クリック可能キーワードのみ（フェードイン対象） -->
+      <g class="ann-group" id="annGroup1tap">
+        <!-- 行1：「予定死亡率、」→ 予定死亡率だけタップ可、「、」は非タップ -->
+        <text id="tapYotei" x="8" y="-5" text-anchor="start" font-size="16" font-weight="700"
+          fill="#c0392b" font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
+          style="cursor:pointer" pointer-events="all">予定死亡率</text>
+        <!-- 行2：「利率」タップ可 + 「で決まる」は annGroup1側 -->
+        <text id="tapRiritsu" x="8" y="17" text-anchor="start" font-size="16" font-weight="700"
+          fill="#c0392b" font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
+          style="cursor:pointer" pointer-events="all">利率</text>
+        <!-- 事業費率ラベル行1：「事業費率」タップ可 -->
+        <text id="tapJigyou1" x="16" y="314" text-anchor="start" font-size="16" font-weight="700"
+          fill="#c0392b" font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
+          style="cursor:pointer" pointer-events="all">事業費率</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<!-- ===== SCENE 2 ===== -->
+<div class="scene" id="scene2">
+  <div class="stage">
+    <button class="back-btn" id="backBtn2">戻る</button>
+    <div class="title" style="top:44px">保険料</div>
+    <svg class="diagram diagram-pos" width="300" height="300" viewBox="0 0 300 300">
+      <circle id="scene2Circle" class="fade-circle" cx="150" cy="150" r="128" fill="#141414"/>
+
+      <!-- 付加（シーン1と完全同じ） -->
+      <g id="fukaBtn2" style="cursor:pointer">
+        <path id="fukaPath2" d="
+          M 62.3,158 L 237.7,158
+          Q 259.7,158 257.7,175.5
+          A 110,110 0 0,1 42.3,175.5
+          Q 40.3,158 62.3,158 Z" fill="#fff"/>
+        <text x="150" y="198" text-anchor="middle" dominant-baseline="central"
+          font-size="44" font-weight="700"
+          font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
+          fill="#111" pointer-events="none">付加</text>
+      </g>
+
+      <!-- 死クッション（左上）→ 死亡保険料モーダル -->
+      <g id="shiBtn" style="cursor:pointer">
+        <path id="shiPath" d="
+          M 142,60.3 L 142,120.0
+          Q 142,142 120,142 L 60.3,142
+          Q 38.3,142 41.3,123.0
+          A 112,112 0 0,1 123,41.3
+          Q 142,38.3 142,60.3 Z" fill="#c9c9c9"/>
+        <text x="94" y="99" text-anchor="middle" dominant-baseline="central"
+          font-size="30" font-weight="700"
+          font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
+          fill="#111" pointer-events="none">死</text>
+      </g>
+
+      <!-- 生存クッション（右上）→ 生存保険料モーダル -->
+      <g id="seishiBtn" style="cursor:pointer">
+        <path id="seishiPath" d="
+          M 158,60.3 L 158,120.0
+          Q 158,142 180,142 L 239.7,142
+          Q 261.7,142 258.7,123.0
+          A 112,112 0 0,0 177,41.3
+          Q 158,38.3 158,60.3 Z" fill="#c9c9c9"/>
+        <!-- 「生」「存」を別textで完全縦揃え（x=204） -->
+        <text x="204" y="79" text-anchor="middle" dominant-baseline="central"
+          font-size="26" font-weight="700"
+          font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
+          fill="#111" pointer-events="none">生</text>
+        <text x="204" y="109" text-anchor="middle" dominant-baseline="central"
+          font-size="26" font-weight="700"
+          font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
+          fill="#111" pointer-events="none">存</text>
+      </g>
+
+      <!-- リーダー線（クリック不可） -->
+      <g pointer-events="none">
+        <line x1="95" y1="222" x2="52" y2="294" stroke="#333" stroke-width="1.3"/>
+        <text font-size="16" font-weight="500" fill="#444"
+          font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif">
+          <tspan x="16" y="336">で決まる</tspan>
+        </text>
+      </g>
+
+      <!-- クリック可能テキスト（事業費率） -->
+      <text id="tapJigyou2" x="16" y="314" text-anchor="start" font-size="16" font-weight="700"
+        fill="#c0392b" font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
+        style="cursor:pointer" pointer-events="all">事業費率</text>
+    </svg>
+  </div>
+</div>
+
+</div><!-- /sceneWrap -->
+
+<!-- ===== MODALS ===== -->
+<div class="modal-overlay" id="overlay"></div>
+
+<div class="modal-box" id="modalJun">
+  <span class="modal-close" id="closeJun">✕</span>
+  <strong style="font-size:18px;font-weight:900;">予定死亡率・予定利率とは？</strong><br><br>
+  <b><span class="hl">予定死亡率</span></b>：将来、契約者が死亡する確率を統計的に予測した数値。死亡保険料の算定に使われます。<br><br>
+  <b><span class="hl">予定利率</span></b>：保険会社が保険料を運用する際に見込む利回りのこと。高いほど保険料が低くなります。
+</div>
+
+<div class="modal-box" id="modalFuka">
+  <span class="modal-close" id="closeFuka">✕</span>
+  <strong style="font-size:18px;font-weight:900;">付加保険料とは？</strong><br><br>
+  保険会社の運営コスト（人件費・広告費など）を賄うための保険料です。<br><br>
+  <b><span class="hl">事業費率</span></b>によって決まり、この率が高いほど付加保険料も高くなります。
+</div>
+
+<div class="modal-box" id="modalJigyou">
+  <span class="modal-close" id="closeJigyou">✕</span>
+  <strong style="font-size:18px;font-weight:900;">事業費率とは？</strong><br><br>
+  <b><span class="hl">事業費率</span></b>：保険会社の運営にかかるコスト（人件費・広告費・代理店手数料など）を保険料に上乗せした割合のこと。<br><br>
+  この率が高いと付加保険料も高くなります。
+</div>
+
+<div class="modal-box" id="modalShi">
+  <span class="modal-close" id="closeShi">✕</span>
+  <strong style="font-size:18px;font-weight:900;">死亡保険料とは？</strong><br><br>
+  被保険者が<b>死亡した場合</b>に支払われる保険金のために積み立てる保険料です。<br><br>
+  <span class="hl">予定死亡率</span>（統計的な死亡確率）と<span class="hl">予定利率</span>（運用利回りの見込み）をもとに計算されます。
+</div>
+
+<div class="modal-box" id="modalSeishi">
+  <span class="modal-close" id="closeSeishi">✕</span>
+  <strong style="font-size:18px;font-weight:900;">生存保険料とは？</strong><br><br>
+  被保険者が満期まで<b>生存した場合</b>に支払われる保険金のために積み立てる保険料です。<br><br>
+  <span class="hl">予定死亡率</span>と<span class="hl">予定利率</span>の両方が算定に影響します。生存率が高いほど保険料は高くなります。
+</div>
+
+<script>
+/* ---- タップフラッシュ ---- */
+function flashTap(el, cb) {
+  el.classList.remove('tapping');
+  void el.offsetWidth;
+  el.classList.add('tapping');
+  el.addEventListener('animationend', function h() {
+    el.classList.remove('tapping');
+    el.removeEventListener('animationend', h);
+    if (cb) cb();
+  });
+}
+
+/* ---- シーン切り替え ---- */
+function showScene(toId, fadeLabels) {
+  const current = document.querySelector('.scene.active');
+  const next = document.getElementById(toId);
+  if (current === next) return;
+
+  // 丸だけフェードアウト
+  const curCircle = current.querySelector('.fade-circle');
+  if (curCircle) {
+    curCircle.classList.remove('circ-visible');
+  }
+
+  // 少し待ってシーン切り替え（丸がフェードアウトする時間）
+  setTimeout(() => {
+    current.classList.remove('active');
+    next.classList.add('active');
+
+    // 丸（circle）をフェードイン
+    const nextCircle = next.querySelector('.fade-circle');
+    if (nextCircle) {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        nextCircle.classList.add('circ-visible');
+      }));
+    }
+
+    // ラベルフェードイン制御
+    if (fadeLabels) {
+      // シーン0→1: ラベルをフェードイン
+      document.querySelectorAll('#scene1 .ann-group').forEach(g => {
+        g.classList.remove('visible');
+        setTimeout(() => g.classList.add('visible'), 120);
+      });
+    } else if (toId === 'scene0') {
+      // シーン1→0（戻る）: scene1ラベルをリセット（次回フェードインのため）
+      document.querySelectorAll('#scene1 .ann-group').forEach(g => {
+        g.classList.remove('visible');
+      });
+    }
+    // シーン1→2、シーン2→1: ann-groupは触らない（既にvisible or 不要）
+  }, 50);
+}
+
+// 初期表示：シーン0の丸を即表示
+window.addEventListener('DOMContentLoaded', () => {
+  const d = document.querySelector('#scene0 .fade-circle');
+  if (d) d.classList.add('circ-visible');
+});
+
+/* ---- モーダル ---- */
+function showModal(id) {
+  const ov  = document.getElementById('overlay');
+  const box = document.getElementById(id);
+  // まず全モーダルを隠す
+  document.querySelectorAll('.modal-box').forEach(m => {
+    m.classList.remove('visible');
+  });
+  // display:blockを確保してからtransition
+  ov.style.display = 'block';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    ov.classList.add('visible');
+    box.classList.add('visible');
+  }));
+}
+function hideModal() {
+  const ov = document.getElementById('overlay');
+  ov.classList.remove('visible');
+  document.querySelectorAll('.modal-box').forEach(m => m.classList.remove('visible'));
+  setTimeout(() => {
+    if (!ov.classList.contains('visible')) ov.style.display = 'none';
+  }, 320);
+}
+
+document.getElementById('overlay').addEventListener('click', hideModal);
+['closeJun','closeFuka','closeJigyou','closeShi','closeSeishi'].forEach(id => {
+  document.getElementById(id).addEventListener('click', hideModal);
+});
+
+/* ---- イベント ---- */
+// ¥コイン（黄色だけフラッシュ）→ シーン1（ラベルフェードイン有り）
+document.getElementById('coinBtn').addEventListener('click', () => {
+  flashTap(document.getElementById('coinCircle'), () => showScene('scene1', true));
+});
+
+// 戻るボタン
+document.getElementById('backBtn1').addEventListener('click', () => showScene('scene0', false));
+document.getElementById('backBtn2').addEventListener('click', () => showScene('scene1', false));
+
+// 純 → シーン2（ラベルフェードなし）
+document.getElementById('junBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  flashTap(document.getElementById('junPath'), () => showScene('scene2', false));
+});
+
+// 付加クッション → 付加モーダル
+document.getElementById('fukaBtn1').addEventListener('click', e => {
+  e.stopPropagation();
+  flashTap(document.getElementById('fukaPath1'), () => showModal('modalFuka'));
+});
+document.getElementById('fukaBtn2').addEventListener('click', e => {
+  e.stopPropagation();
+  flashTap(document.getElementById('fukaPath2'), () => showModal('modalFuka'));
+});
+
+// クリック可能テキスト（線は除外）
+document.getElementById('tapYotei').addEventListener('click',   e => { e.stopPropagation(); showModal('modalJun'); });
+document.getElementById('tapRiritsu').addEventListener('click', e => { e.stopPropagation(); showModal('modalJun'); });
+document.getElementById('tapJigyou1').addEventListener('click', e => { e.stopPropagation(); showModal('modalJigyou'); });
+document.getElementById('tapJigyou2').addEventListener('click', e => { e.stopPropagation(); showModal('modalJigyou'); });
+
+// 死・生存クッション
+document.getElementById('shiBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  flashTap(document.getElementById('shiPath'), () => showModal('modalShi'));
+});
+document.getElementById('seishiBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  flashTap(document.getElementById('seishiPath'), () => showModal('modalSeishi'));
+});
+</script>
+</body>
+</html>
