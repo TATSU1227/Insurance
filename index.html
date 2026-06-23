@@ -415,18 +415,21 @@ function showScene(toId, fadeLabels) {
 
   } else if (fromId === 'scene1' && toId === 'scene2') {
     // ===== シーン1→2 =====
-    // ann-junをリセット（シーン2→1で戻った時にフェードインさせるため）
+    // ann-junをフェードアウト
     document.querySelectorAll('#scene1 .ann-jun').forEach(g => g.classList.remove('visible'));
-    current.classList.remove('active');
-    next.classList.add('active');
-    // 黒丸・付加は即表示
-    next.querySelectorAll('.fade-whole').forEach(el => el.classList.add('no-anim'));
-    next.querySelectorAll('.fade-title').forEach(el => el.classList.add('no-anim'));
-    // 死・生存だけフェードイン
-    next.querySelectorAll('.fade-part').forEach(el => el.classList.remove('part-visible'));
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      next.querySelectorAll('.fade-part').forEach(el => el.classList.add('part-visible'));
-    }));
+    // フェードアウト完了後にシーン切り替え
+    setTimeout(() => {
+      current.classList.remove('active');
+      next.classList.add('active');
+      // 黒丸・付加は即表示
+      next.querySelectorAll('.fade-whole').forEach(el => el.classList.add('no-anim'));
+      next.querySelectorAll('.fade-title').forEach(el => el.classList.add('no-anim'));
+      // 死・生存だけフェードイン
+      next.querySelectorAll('.fade-part').forEach(el => el.classList.remove('part-visible'));
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        next.querySelectorAll('.fade-part').forEach(el => el.classList.add('part-visible'));
+      }));
+    }, FADE_DUR);
 
   } else if (fromId === 'scene2' && toId === 'scene1') {
     // ===== シーン2→1 =====
