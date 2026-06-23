@@ -17,21 +17,44 @@
     font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', sans-serif;
   }
 
-  /* シーン管理：position:absoluteで重ねてフェード */
+  /* シーン管理：重ねてopacityで切り替え */
   #sceneWrap { position: relative; width: 100%; min-height: 100vh; }
   .scene {
     position: absolute; top: 0; left: 0; width: 100%;
     min-height: 100vh;
-    display: none;
+    pointer-events: none;
+    visibility: hidden;
   }
-  .scene.active { display: block; }
+  .scene.active {
+    pointer-events: auto;
+    visibility: visible;
+  }
 
   /* 丸い図形（circle）だけフェード */
   .fade-circle {
     opacity: 0;
-    transition: opacity 0.05s ease;
+    transition: opacity 0.15s ease;
   }
   .fade-circle.circ-visible { opacity: 1; }
+
+  /* シーン遷移で「変化する部分」だけフェード */
+  .fade-part {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .fade-part.part-visible { opacity: 1; }
+
+  /* シーン0→1の全体フェード用 */
+  .fade-whole {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .fade-whole.whole-visible { opacity: 1; }
+  /* シーン1↔2では黒丸・付加は即表示（アニメなし） */
+  .fade-whole.no-anim {
+    transition: none;
+    opacity: 1;
+  }
 
   .stage { position: relative; width: 100%; min-height: 100vh; }
 
@@ -96,36 +119,48 @@
     transform: translate(-50%, -50%);
   }
 
+  /* ボタンのフェード（タイトルは除外） */
+  .fade-title {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .fade-title.title-visible { opacity: 1; }
+  .fade-title.no-anim { transition: none; opacity: 1; }
+
   .modal-close { float:right; cursor:pointer; font-size:16px; color:#999; margin-left:8px; }
   .hl { color: #c0392b; font-weight: 700; }
 </style>
 </head>
 <body>
+<!-- コイン：常時表示レイヤー（最前面） -->
+<svg id="coinBtn" width="300" height="300" viewBox="0 0 300 300"
+  style="position:fixed; top:150px; left:50%; transform:translateX(-50%);
+         overflow:visible; z-index:10; cursor:pointer;
+         opacity:1; transition:opacity 0.2s ease; pointer-events:auto;">
+  <circle id="coinCircle" cx="150" cy="150" r="128" fill="#E8C440"/>
+  <circle cx="150" cy="150" r="128" fill="none" stroke="#111" stroke-width="4" pointer-events="none"/>
+  <text x="150" y="155" text-anchor="middle" dominant-baseline="central"
+    font-size="155" font-weight="300"
+    font-family="'M PLUS Rounded 1c', sans-serif"
+    fill="#111" pointer-events="none">¥</text>
+</svg>
+
 <div id="sceneWrap">
 
 <!-- ===== SCENE 0 ===== -->
 <div class="scene active" id="scene0">
   <div class="stage">
-    <div class="title" style="top:48px">保険料</div>
-    <svg class="diagram diagram-pos" id="coinBtn" width="300" height="300" viewBox="0 0 300 300" style="cursor:pointer">
-      <!-- 黄色のみタップ対象（枠・¥はpointer-events:none） -->
-      <circle id="coinCircle" class="fade-circle" cx="150" cy="150" r="128" fill="#E8C440"/>
-      <circle cx="150" cy="150" r="128" fill="none" stroke="#111" stroke-width="4" pointer-events="none"/>
-      <text x="150" y="155" text-anchor="middle" dominant-baseline="central"
-        font-size="155" font-weight="300"
-        font-family="'M PLUS Rounded 1c', sans-serif"
-        fill="#111" pointer-events="none">¥</text>
-    </svg>
+    <div class="title" style="top:44px">保険料</div>
   </div>
 </div>
 
 <!-- ===== SCENE 1 ===== -->
 <div class="scene" id="scene1">
   <div class="stage">
-    <button class="back-btn" id="backBtn1">戻る</button>
+    <button class="back-btn fade-title" id="backBtn1">戻る</button>
     <div class="title" style="top:44px">保険料</div>
     <svg class="diagram diagram-pos" width="300" height="300" viewBox="0 0 300 300">
-      <circle id="scene1Circle" class="fade-circle" cx="150" cy="150" r="128" fill="#141414"/>
+      <circle id="scene1Circle" cx="150" cy="150" r="128" fill="#141414"/>
 
       <!-- 純クッション -->
       <g id="junBtn" style="cursor:pointer">
@@ -158,8 +193,10 @@
         線を少し短く：純ラベル線 y1=84→y2=28（上端を短縮）
                       付加ラベル線 y1=222→y2=292（下端を短縮）
       -->
-      <g class="ann-group" id="annLines1" pointer-events="none">
+      <g class="ann-group ann-jun" id="annLines1Jun" pointer-events="none">
         <line x1="95" y1="84" x2="55" y2="28" stroke="#333" stroke-width="1.3"/>
+      </g>
+      <g class="ann-group ann-jigyou" id="annLines1Jigyou" pointer-events="none">
         <line x1="95" y1="222" x2="52" y2="294" stroke="#333" stroke-width="1.3"/>
       </g>
 
@@ -168,31 +205,31 @@
         線はクリック不可、テキストのみクリック可能にするため
         非クリック部（「、」「で決まる」）と クリック部（キーワード）を分離
       -->
-      <g class="ann-group" id="annGroup1" pointer-events="none">
-        <!-- 純ラベル非クリック部：「、」は予定死亡率の右隣、「利率で決まる」2行目 -->
+      <!-- 純ラベル（シーン0→1 / シーン2→1でフェードイン） -->
+      <g class="ann-group ann-jun" id="annGroup1" pointer-events="none">
         <text font-size="16" font-weight="500" fill="#111"
           font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif">
           <tspan x="88" y="-5">、</tspan>
           <tspan x="40" y="17">で決まる</tspan>
         </text>
-        <!-- 付加ラベル非クリック部：「で決まる」は事業費率の下 -->
+      </g>
+      <g class="ann-group ann-jun" id="annGroup1tap">
+        <text id="tapYotei" x="8" y="-5" text-anchor="start" font-size="16" font-weight="700"
+          fill="#c0392b" font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
+          style="cursor:pointer" pointer-events="all">予定死亡率</text>
+        <text id="tapRiritsu" x="8" y="17" text-anchor="start" font-size="16" font-weight="700"
+          fill="#c0392b" font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
+          style="cursor:pointer" pointer-events="all">利率</text>
+      </g>
+
+      <!-- 事業費率ラベル（シーン0→1でのみフェードイン） -->
+      <g class="ann-group ann-jigyou" id="annJigyou" pointer-events="none">
         <text font-size="16" font-weight="500" fill="#444"
           font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif">
           <tspan x="16" y="336">で決まる</tspan>
         </text>
       </g>
-
-      <!-- クリック可能キーワードのみ（フェードイン対象） -->
-      <g class="ann-group" id="annGroup1tap">
-        <!-- 行1：「予定死亡率、」→ 予定死亡率だけタップ可、「、」は非タップ -->
-        <text id="tapYotei" x="8" y="-5" text-anchor="start" font-size="16" font-weight="700"
-          fill="#c0392b" font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
-          style="cursor:pointer" pointer-events="all">予定死亡率</text>
-        <!-- 行2：「利率」タップ可 + 「で決まる」は annGroup1側 -->
-        <text id="tapRiritsu" x="8" y="17" text-anchor="start" font-size="16" font-weight="700"
-          fill="#c0392b" font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
-          style="cursor:pointer" pointer-events="all">利率</text>
-        <!-- 事業費率ラベル行1：「事業費率」タップ可 -->
+      <g class="ann-group ann-jigyou" id="annJigyouTap">
         <text id="tapJigyou1" x="16" y="314" text-anchor="start" font-size="16" font-weight="700"
           fill="#c0392b" font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
           style="cursor:pointer" pointer-events="all">事業費率</text>
@@ -207,7 +244,7 @@
     <button class="back-btn" id="backBtn2">戻る</button>
     <div class="title" style="top:44px">保険料</div>
     <svg class="diagram diagram-pos" width="300" height="300" viewBox="0 0 300 300">
-      <circle id="scene2Circle" class="fade-circle" cx="150" cy="150" r="128" fill="#141414"/>
+      <circle id="scene2Circle" cx="150" cy="150" r="128" fill="#141414"/>
 
       <!-- 付加（シーン1と完全同じ） -->
       <g id="fukaBtn2" style="cursor:pointer">
@@ -224,13 +261,13 @@
 
       <!-- 死クッション（左上）→ 死亡保険料モーダル -->
       <g id="shiBtn" style="cursor:pointer">
-        <path id="shiPath" d="
+        <path id="shiPath" class="fade-part" d="
           M 142,60.3 L 142,120.0
           Q 142,142 120,142 L 60.3,142
           Q 38.3,142 41.3,123.0
           A 112,112 0 0,1 123,41.3
           Q 142,38.3 142,60.3 Z" fill="#c9c9c9"/>
-        <text x="94" y="99" text-anchor="middle" dominant-baseline="central"
+        <text class="fade-part" x="94" y="99" text-anchor="middle" dominant-baseline="central"
           font-size="30" font-weight="700"
           font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
           fill="#111" pointer-events="none">死</text>
@@ -238,18 +275,18 @@
 
       <!-- 生存クッション（右上）→ 生存保険料モーダル -->
       <g id="seishiBtn" style="cursor:pointer">
-        <path id="seishiPath" d="
+        <path id="seishiPath" class="fade-part" d="
           M 158,60.3 L 158,120.0
           Q 158,142 180,142 L 239.7,142
           Q 261.7,142 258.7,123.0
           A 112,112 0 0,0 177,41.3
           Q 158,38.3 158,60.3 Z" fill="#c9c9c9"/>
         <!-- 「生」「存」を別textで完全縦揃え（x=204） -->
-        <text x="204" y="79" text-anchor="middle" dominant-baseline="central"
+        <text class="fade-part" x="204" y="79" text-anchor="middle" dominant-baseline="central"
           font-size="26" font-weight="700"
           font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
           fill="#111" pointer-events="none">生</text>
-        <text x="204" y="109" text-anchor="middle" dominant-baseline="central"
+        <text class="fade-part" x="204" y="109" text-anchor="middle" dominant-baseline="central"
           font-size="26" font-weight="700"
           font-family="'Zen Maru Gothic','Hiragino Maru Gothic ProN',sans-serif"
           fill="#111" pointer-events="none">存</text>
@@ -330,48 +367,89 @@ function showScene(toId, fadeLabels) {
   const current = document.querySelector('.scene.active');
   const next = document.getElementById(toId);
   if (current === next) return;
+  const fromId = current.id;
 
-  // 丸だけフェードアウト
-  const curCircle = current.querySelector('.fade-circle');
-  if (curCircle) {
-    curCircle.classList.remove('circ-visible');
-  }
+  const FADE_DUR = 150; // msec（CSSの0.15sと合わせる）
 
-  // 少し待ってシーン切り替え（丸がフェードアウトする時間）
-  setTimeout(() => {
+  if (fromId === 'scene0' && toId === 'scene1') {
+    // ===== シーン0→1 =====
+    // 先にシーン1をactiveにして黒丸群を下に見せる
     current.classList.remove('active');
     next.classList.add('active');
-
-    // 丸（circle）をフェードイン
-    const nextCircle = next.querySelector('.fade-circle');
-    if (nextCircle) {
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        nextCircle.classList.add('circ-visible');
-      }));
-    }
-
-    // ラベルフェードイン制御
-    if (fadeLabels) {
-      // シーン0→1: ラベルをフェードイン
+    // 戻るボタンを即表示
+    next.querySelectorAll('.fade-title').forEach(el => el.classList.add('title-visible'));
+    // コインをフェードアウト（黒丸群の上から消える）
+    const coin = document.getElementById('coinBtn');
+    coin.style.pointerEvents = 'none';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      coin.style.opacity = '0';
+    }));
+    // フェードアウト完了後にラベルフェードイン
+    setTimeout(() => {
       document.querySelectorAll('#scene1 .ann-group').forEach(g => {
         g.classList.remove('visible');
-        setTimeout(() => g.classList.add('visible'), 120);
+        setTimeout(() => g.classList.add('visible'), 40);
       });
-    } else if (toId === 'scene0') {
-      // シーン1→0（戻る）: scene1ラベルをリセット（次回フェードインのため）
-      document.querySelectorAll('#scene1 .ann-group').forEach(g => {
-        g.classList.remove('visible');
-      });
-    }
-    // シーン1→2、シーン2→1: ann-groupは触らない（既にvisible or 不要）
-  }, 50);
+    }, FADE_DUR);
+
+  } else if (fromId === 'scene1' && toId === 'scene0') {
+    // ===== シーン1→0 =====
+    // 戻るボタン・ラベルをフェードアウト
+    current.querySelectorAll('.fade-title').forEach(el => el.classList.remove('title-visible'));
+    document.querySelectorAll('#scene1 .ann-group').forEach(g => g.classList.remove('visible'));
+    // コインをフェードイン（黒丸の上に被せる）
+    const coin = document.getElementById('coinBtn');
+    coin.style.opacity = '0';
+    coin.style.pointerEvents = 'none';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      coin.style.opacity = '1';
+    }));
+    // コインが完全に表示されたらシーン切り替え
+    setTimeout(() => {
+      current.classList.remove('active');
+      next.classList.add('active');
+      coin.style.pointerEvents = 'auto';
+      // scene1ラベルリセット（次回フェードインのため）
+      document.querySelectorAll('#scene1 .ann-group').forEach(g => g.classList.remove('visible'));
+    }, FADE_DUR);
+
+  } else if (fromId === 'scene1' && toId === 'scene2') {
+    // ===== シーン1→2 =====
+    // ann-junをリセット（シーン2→1で戻った時にフェードインさせるため）
+    document.querySelectorAll('#scene1 .ann-jun').forEach(g => g.classList.remove('visible'));
+    current.classList.remove('active');
+    next.classList.add('active');
+    // 黒丸・付加は即表示
+    next.querySelectorAll('.fade-whole').forEach(el => el.classList.add('no-anim'));
+    next.querySelectorAll('.fade-title').forEach(el => el.classList.add('no-anim'));
+    // 死・生存だけフェードイン
+    next.querySelectorAll('.fade-part').forEach(el => el.classList.remove('part-visible'));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      next.querySelectorAll('.fade-part').forEach(el => el.classList.add('part-visible'));
+    }));
+
+  } else if (fromId === 'scene2' && toId === 'scene1') {
+    // ===== シーン2→1 =====
+    current.classList.remove('active');
+    next.classList.add('active');
+    // 黒丸・付加・事業費率は即表示
+    next.querySelectorAll('.fade-whole').forEach(el => { el.classList.remove('no-anim'); el.classList.add('whole-visible'); });
+    next.querySelectorAll('.fade-title').forEach(el => { el.classList.remove('no-anim'); el.classList.add('title-visible'); });
+    next.querySelectorAll('#scene1 .ann-jigyou').forEach(g => g.classList.add('visible'));
+    // 純だけフェードイン
+    next.querySelectorAll('.fade-part').forEach(el => el.classList.remove('part-visible'));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      next.querySelectorAll('.fade-part').forEach(el => el.classList.add('part-visible'));
+    }));
+    // 純ラベルだけフェードイン
+    document.querySelectorAll('#scene1 .ann-jun').forEach(g => {
+      g.classList.remove('visible');
+      setTimeout(() => g.classList.add('visible'), 80);
+    });
+  }
 }
 
-// 初期表示：シーン0の丸を即表示
-window.addEventListener('DOMContentLoaded', () => {
-  const d = document.querySelector('#scene0 .fade-circle');
-  if (d) d.classList.add('circ-visible');
-});
+// 初期表示：コインは既にopacity:1（CSS inline style）なので何もしない
 
 /* ---- モーダル ---- */
 function showModal(id) {
