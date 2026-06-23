@@ -129,19 +129,19 @@
   /* ヒントテキスト点滅 */
   #hintText {
     position: absolute;
-    top: 490px;
+    top: 460px;
     left: 0; right: 0;
     text-align: center;
     font-size: 1rem;
     font-weight: 700;
     color: #555;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.07em;
     pointer-events: none;
-    animation: blink 1.5s ease-in-out infinite;
+    animation: blink 0.8s ease-in-out infinite;
   }
   @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.2; }
+    0%, 100% { opacity: 0.5; }
+    50%       { opacity: 1; }
   }
 
   .modal-close { float:right; cursor:pointer; font-size:16px; color:#999; margin-left:8px; }
